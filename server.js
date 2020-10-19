@@ -1,3 +1,4 @@
+// add packages
 const mysql = require('mysql2');
 const inquirer = require("inquirer");
 const cTable = require('console.table');
@@ -62,8 +63,17 @@ function questions() {
         })
 }
 
+function viewDepartments() {
+    let query = `SELECT * FROM department`;
+    connection.query(query, function (err, res) {
+        if (err) throw err;
+        console.table(res);
+        questions();
+    })
+}
+
 function viewEmployees() {
-    // select from the db
+    // select and join from the db
     let query = `SELECT employee.id, employee.first_name, employee.last_name, role.title, role.salary, department.name AS department, concat(manager.first_name, " ", manager.last_name) AS manager
     FROM employee
     JOIN role ON employee.role_id = role.id
@@ -93,6 +103,25 @@ function viewRoles() {
     });
 }
 
+function addDepartment() {
+    return inquirer.prompt([
+        {
+            type: "input",
+            name: "add_department_name",
+            message: "What is the name of the new department?"
+        }
+    ]).then(deptInfo => {
+        connection.query(`INSERT INTO department SET ?`, {
+            name: deptInfo.add_department_name
+        },
+            function (err, res) {
+                if (err) throw err;
+                console.log("New department added\n");
+                questions();
+            })
+    })
+
+}
 function addRole() {
     return inquirer.prompt([
         {
@@ -125,12 +154,43 @@ function addRole() {
     })
 }
 
-// }
-// {
-//     type: "input",
-//     name: "update_id",
-//     message: "What is the ID of the employee that you would like to update?"
-// }
+function addEmployee() {
+    return inquirer.prompt([
+        {
+            type: "input",
+            name: "add_first_name",
+            message: "What is the first name of the new employee?"
+        },
+        {
+            type: "input",
+            name: "add_last_name",
+            message: "What is the last name of the new employee?"
+        },
+        {
+            type: "input",
+            name: "add_employee_role",
+            message: "What is the id # of the role of this new employee?"
+
+        },
+        {
+            type: "input",
+            name: "add_employee_manager",
+            message: "What is the id # of the manager of this employee?"
+        }
+    ]).then(employeeInfo => {
+        connection.query(`INSERT INTO employee SET ?`, {
+            first_name: employeeInfo.add_first_name,
+            last_name: employeeInfo.add_last_name,
+            role_id: employeeInfo.add_employee_role,
+            manager_id: employeeInfo.add_employee_manager
+        },
+            function (err, res) {
+                if (err) throw err;
+                console.log("New employee added\n");
+                questions();
+            })
+    })
+}
 
 function exit() {
     connection.end();
