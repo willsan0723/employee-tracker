@@ -207,8 +207,22 @@ function findManager(roleChoice) {
 }
 
 // function to display employees
+function findEmployee() {
+    var query = "SELECT * FROM employee"
 
+    connection.query(query, function (err, res) {
+        if (err) throw err;
 
+        const employeeChoice = res.map(({ id, first_name, last_name }) => ({
+            name: `${first_name} ${last_name}`,
+            value: id
+        }));
+        // need to add to employee role so both can be passed to update function
+        employeeRole(employeeChoice);
+    })
+}
+
+// function to add a new employee
 function addEmployee(roleChoice, managerChoice) {
     return inquirer.prompt([
         {
@@ -247,6 +261,56 @@ function addEmployee(roleChoice, managerChoice) {
             })
     })
 }
+
+// function to get employee's role for the update function
+function employeeRole(employeeChoice) {
+    var query = "SELECT title AS name, id FROM role"
+
+    connection.query(query, function (err, res) {
+        if (err) throw err;
+
+        const updatesRoles = res.map(({ name, id }) => ({
+            name: name,
+            value: id
+        }));
+
+        updateRole(employeeChoice, updatesRoles);
+    });
+}
+
+// function to update an employee's role
+function updateRole(employeeChoice, updatesRoles) {
+    return inquirer.prompt([
+        {
+            type: "list",
+            name: "updateEmployee",
+            message: "Which employee would you like to update?",
+            choices: employeeChoice
+        },
+        {
+            type: "list",
+            name: "newRole",
+            message: "What is the new role for this employee?",
+            choices: updatesRoles
+        }
+    ]).then(update => {
+        connection.query(`UPDATE employee SET ? WHERE ?`,
+            [
+                {
+                    role_id: update.newRole
+                },
+                {
+                    id: update.updateEmployee
+                }
+            ],
+            function (err, res) {
+                if (err) throw err;
+                console.log("Employee updated.\n");
+                questions();
+            })
+    })
+}
+
 
 function exit() {
     connection.end();
