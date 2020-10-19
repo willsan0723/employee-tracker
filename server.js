@@ -48,13 +48,13 @@ function questions() {
                     addDepartment()
                     break;
                 case "Add Role":
-                    addRole();
+                    findDept();
                     break;
                 case "Add Employee":
-                    addEmployee();
+                    findRole();
                     break;
                 case "Update Employee Role":
-                    updateEmployee();
+                    findEmployee();
                     break;
                 case "Done":
                     exit();
@@ -122,7 +122,22 @@ function addDepartment() {
     })
 
 }
-function addRole() {
+// need to pull up departments so it's a selection rather than requiring an id number
+function findDept() {
+    var query = "SELECT * FROM department"
+
+    connection.query(query, function (err, res) {
+        if (err) throw err;
+
+        const deptChoice = res.map(({ id, name }) => ({
+            value: id, name: `${name}`
+        }));
+        addRole(deptChoice)
+    })
+
+}
+// now this function takes in the choices
+function addRole(deptChoice) {
     return inquirer.prompt([
         {
             type: "input",
@@ -135,10 +150,10 @@ function addRole() {
             message: "What is the salary of the new role?"
         },
         {
-            type: "input",
+            type: "list",
             name: "add_role_id",
-            message: "What is the id of the department this new role belongs to?"
-
+            message: "What is the department this new role belongs to?",
+            choices: deptChoice
         }
     ]).then(roleInfo => {
         connection.query(`INSERT INTO role SET ?`, {
@@ -153,8 +168,48 @@ function addRole() {
             })
     })
 }
+// function to display roles
+function findRole() {
+    var query = "SELECT title AS name, id FROM role"
 
-function addEmployee() {
+    connection.query(query, function (err, res) {
+        if (err) throw err;
+
+        const roleChoice = res.map(({ id, name }) => ({
+            value: id,
+            name: name
+        }));
+        // needs to link to managers so employee creation can have both
+        findManager(roleChoice);
+    })
+}
+
+// function to display managers
+function findManager(roleChoice) {
+    var query = "SELECT * FROM employee"
+
+    connection.query(query, function (err, res) {
+        if (err) throw err;
+
+        let managerChoice = res.map(({ id, first_name, last_name }) =>
+            ({
+                name: `${first_name} ${last_name}`,
+                value: id
+            }));
+        const noManager = {
+            name: "This employee doesn't have a manager.",
+            value: null
+        }
+        managerChoice.push(noManager)
+
+        addEmployee(roleChoice, managerChoice);
+    });
+}
+
+// function to display employees
+
+
+function addEmployee(roleChoice, managerChoice) {
     return inquirer.prompt([
         {
             type: "input",
@@ -167,15 +222,16 @@ function addEmployee() {
             message: "What is the last name of the new employee?"
         },
         {
-            type: "input",
+            type: "list",
             name: "add_employee_role",
-            message: "What is the id # of the role of this new employee?"
-
+            message: "What is the role of this new employee?",
+            choices: roleChoice
         },
         {
-            type: "input",
+            type: "list",
             name: "add_employee_manager",
-            message: "What is the id # of the manager of this employee?"
+            message: "Who is the manager of this employee?",
+            choices: managerChoice
         }
     ]).then(employeeInfo => {
         connection.query(`INSERT INTO employee SET ?`, {
